@@ -33,7 +33,7 @@ def imic(sim, K, B, M, q_r, q_r_dot, p, p_dot, dt, f_in):
     x_r = np.append(x_r_pos, euler_r)
     x_r_dot = j_muj @ q_r_dot
     # print(euler_r)
-    f_in[0:2] = np.array([0, 0])
+    # f_in[0:2] = np.array([0, 0])
     # Impedance model equation
     integrand = inv(M) @ (-f_in + B @ (p_dot_0 - x_r_dot) + K @ (p_0 - x_r))  # X_m_2dot
     # Discrete integral for X_m_dot & X_m

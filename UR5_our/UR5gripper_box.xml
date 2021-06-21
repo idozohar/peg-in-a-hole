@@ -268,9 +268,10 @@ Control Engineering / Automation Engineering
                                     <joint name="wrist_2_joint" class="UR5e" pos="0 0 0" axis="0 0 1" limited="true" range="-3.14159 3.14159" />
                                     <geom type="mesh"  mesh="wrist2" material="ur5_mat"/>
                                     <body name="wrist_3_link" pos="0 0 0.09465">
+                                        <site name="wrist_3_link" pos="0 0.05 0" size="0.045 0.045.0065" />
                                         <inertial pos="0 0 0" quat="0.5 0.5 -0.5 0.5" mass="0.1879" diaginertia="0.033822 0.0171365 0.0171365" />
                                         <joint name="wrist_3_joint" class="UR5e" pos="0 0 0" axis="0 1 0" limited="true" range="-3.14159 3.14159" />
-                                        <geom name="wrist_3_link" type="mesh"  mesh="wrist3" material="ur5_mat"/>
+                                        <geom name="wrist_3_link" type="mesh"  mesh="wrist3" material="ur5_mat" rgba="1 0 0 1"/>
                                         <body name="ee_link" pos="0 0.0823 0" quat="0.707107 0 0 0.707107">
                                             <inertial pos="-0.01 0 0" mass="0.001" diaginertia="1.66667e-08 1.66667e-08 1.66667e-08" />
                                             <geom size="0.005 0.005 0.005" pos="-0.01 0 0" type="box" />
@@ -457,20 +458,23 @@ Control Engineering / Automation Engineering
     </actuator>
 
     <sensor>
-        <touch name="gripperpalm_frc" 		site="gripperpalm"/>
+        <touch name="gripperpalm_norm" 		site="gripperpalm"/>
+<!--        <touch name="wrist_3_link_frc" 		site="wrist_3_link"/>-->
 
-        <!--<touch name="finger_1_polp_1_frc"	site="gripperfinger_1_polp_1"/>
-    	<touch name="finger_1_polp_2_frc" 	site="gripperfinger_1_polp_2"/>
-        <touch name="finger_1_polp_3_frc" 	site="gripperfinger_1_polp_3"/>
+        <force name="finger1_p1_f"	site="gripperfinger_1_polp_1"/>
+    	<force name="finger1_p2_f" 	site="gripperfinger_1_polp_2"/>
+        <force name="finger1_p3_f" 	site="gripperfinger_1_polp_3"/>
 
-        <touch name="finger_2_link_1_frc" 	site="gripperfinger_2_polp_1"/>
-        <touch name="finger_2_link_2_frc" 	site="gripperfinger_2_polp_2"/>
-        <touch name="finger_2_link_3_frc" 	site="gripperfinger_2_polp_3"/>
+        <force name="finger2_p1_f" 	site="gripperfinger_2_polp_1"/>
+        <force name="finger2_p2_f" 	site="gripperfinger_2_polp_2"/>
+        <force name="finger2_p3_f" 	site="gripperfinger_2_polp_3"/>
 
-        <touch name="finger_middle_link_1_frc" 	site="gripperfinger_middle_polp_1"/>
-        <touch name="finger_middle_link_2_frc" 	site="gripperfinger_middle_polp_2"/>
-        <touch name="finger_middle_link_3_frc" 	site="gripperfinger_middle_polp_3"/>-->
+        <force name="finger3_p1_f" 	site="gripperfinger_middle_polp_1"/>
+        <force name="finger3_p2_f" 	site="gripperfinger_middle_polp_2"/>
+        <force name="finger3_p3_f" 	site="gripperfinger_middle_polp_3"/>
 
-	<force name='end' site='gripperpalm'/>
+	    <force name='end' site='gripperpalm'/>
+        <force name="wrist_3_link_f" 		site="wrist_3_link"/>
+        <torque name="wrist_3_link_t" 		site="wrist_3_link"/>
     </sensor>
 </mujoco>
