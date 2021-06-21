@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.linalg import inv
 import our_func
+import R_construct as rc
 
 
 def motion_plan(start_point, end_point, time_to_execut, time_diff):
@@ -43,13 +44,14 @@ def motion_plan(start_point, end_point, time_to_execut, time_diff):
     # Rotation matrix between the two points (points are given in world cord.)
     R = inv(start_point[0:3, 0:3]) @ end_point[0:3, 0:3]
 
-    # if Rotation is needed find Rotation vector and angel
+    # if Rotation is needed find Rotation vector and angle
     if np.any(R - np.identity(3)):
         trace = np.trace(R)
-        angel = np.arccos((trace - 1) / 2)
-        angel_diff = angel / reso
+        angle = np.arccos((trace - 1) / 2)
+        angle_diff = angle / reso
         n_sub = np.array([R[2, 1] - R[1, 2], R[0, 2] - R[2, 0], R[1, 0] - R[0, 1]])
-        n_vec_diff = (1 / (2 * np.sin(angel_diff))) * n_sub
+        n_vec_diff = (1 / (2 * np.sin(angle))) * n_sub
+        R_diff = rc.R_axis_and_angle(n_vec_diff, angle_diff)
 
     # init first point
     full_path = np.zeros((reso, 4, 4))
@@ -62,7 +64,7 @@ def motion_plan(start_point, end_point, time_to_execut, time_diff):
     for j in range(1, reso):
         # if need Rotation, multiply current R with diff Rotation
         if np.any(R-np.identity(3)):
-            R_next = R_next @ n_vec_diff
+            R_next = R_next @ R_diff
 
         full_path[j] = our_func.build_target(p[:, j], R_next)
 
