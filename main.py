@@ -8,6 +8,7 @@ import my_filter
 import contacts
 import sensor_reading as sr
 import UR5_kinematics as UR5_kin
+from scipy.spatial.transform import Rotation as R
 
 need_render = True
 # Set points here (homogeneous transformation matrix)
@@ -65,12 +66,19 @@ x_down = np.array([0.02, -0.6575, 0.27])
 #                  [0, np.sin(80/180 * np.pi), np.cos(80/180 * np.pi), 0.27],
 #                  [0, 0, 0, 1]])
 
-dx = 0
-dy = 0
+dx = 0.01
+dy = 0.01
+angle_err = np.deg2rad([0, 0, 0])
+rotation_mat = np.identity(3)
+temp_mat = R.from_rotvec(angle_err)
+rotation_mat = temp_mat.as_matrix()
+trans_mat = np.identity(4)
+trans_mat[0:3,0:3] = rotation_mat
 down2 = np.array([[1, 0, 0, 0.02 + dx],
                   [0, 0, -1, -0.6575 + dy],
                   [0, 1, 0, 0.20],
                   [0, 0, 0, 1]])
+down2 = down2 @ trans_mat
 
 test = np.array([[1, 0, 0, -0.11],
                  [0, 0, -1, -0.65],
@@ -130,7 +138,7 @@ sim.set_state(state)
 
 
 # ---------------  Set Simulation Parameters  ---------------- #
-controller = 'PID'  # Choose Controller: 'PID' , 'impedance' , 'bias'
+controller = 'PID'  # Choose initial Controller: 'PID' , 'impedance' , 'bias'
 hybrid = True   # if true, Movement to cylinder with PID and afterwards with impedance
 move_speed = 0.5  # [m/s] Set the desired Speed
 sim_time = 12  # [sec] Length of Simulation
@@ -152,21 +160,14 @@ kp_im = np.diag(np.array([100, 100, 100, 50, 50, 0.1])*1)
 ki_im = np.diag(np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.001])*0)  # 0.5
 kd_im = 0.3*0  # 0.3
 
-# K = np.identity(6) * 4000  # 4000
 K = np.array([[1000, 0, 0, 0, 0, 0],
               [0, 1000, 0, 0, 0, 0],
-              [0, 0, 500, 0, 0, 0],
-              [0, 0, 0, 1000, 0, 0],
-              [0, 0, 0, 0, 1000, 0],
-              [0, 0, 500, 0, 0, 1000]])
+              [0, 0, 2000, 0, 0, 0],
+              [0, 0, 0, 2500, 0, 0],
+              [0, 0, 0, 0, 500, 0],
+              [0, 0, 500, 0, 0, 500]])
 
 B = np.identity(6) * 400  # 200
-# B = np.array([[200, 0, 0, 0, 0, 0],
-#               [0, 300, 0, 0, 0, 0],
-#               [0, 0, 200, 0, 0, 0],
-#               [0, 0, 0, 10, 0, 0],
-#               [0, 0, 0, 0, 10, 0],
-#               [0, 0, 0, 0, 0, 10]])
 
 M = np.identity(6) * 0.2   # 0.2
 
@@ -225,7 +226,6 @@ pos_error = 0
 last_forces_avg = [0, 0, 0]
 
 # init log vars
-# time = np.arange(0, sim_time, DT)
 actual_q = np.zeros((6, 1))
 actual_q_dot = np.zeros((6, 1))
 pos_error_log = np.zeros((6, 1))
@@ -359,7 +359,7 @@ while True:
         torque = act_torque - torque_norm
 
         if hybrid and controller == 'PID':  # Start Impedance Controller when sensing obstacle
-            if abs(force[2]) > 10:
+            if abs(force[2]) > 15:
                 controller = 'impedance'
 
     Tau = np.append(force, torque)
@@ -375,9 +375,6 @@ while True:
         if delay == 0:
             delay_flag = 0
             move_flag = 1
-
-    # x_actual_temp =sim.data.get_body_xpos('cylinder_play')
-    # x_r = np.append(x_r, np.reshape(x_actual_temp, (3, 1)), axis=1)
 
 	# advance the loop counter
     sim_loop_num += 1

@@ -461,17 +461,17 @@ Control Engineering / Automation Engineering
         <touch name="gripperpalm_norm" 		site="gripperpalm"/>
 <!--        <touch name="wrist_3_link_frc" 		site="wrist_3_link"/>-->
 
-        <force name="finger1_p1_f"	site="gripperfinger_1_polp_1"/>
-    	<force name="finger1_p2_f" 	site="gripperfinger_1_polp_2"/>
-        <force name="finger1_p3_f" 	site="gripperfinger_1_polp_3"/>
+<!--        <force name="finger1_p1_f"	site="gripperfinger_1_polp_1"/>-->
+<!--    	<force name="finger1_p2_f" 	site="gripperfinger_1_polp_2"/>-->
+<!--        <force name="finger1_p3_f" 	site="gripperfinger_1_polp_3"/>-->
 
-        <force name="finger2_p1_f" 	site="gripperfinger_2_polp_1"/>
-        <force name="finger2_p2_f" 	site="gripperfinger_2_polp_2"/>
-        <force name="finger2_p3_f" 	site="gripperfinger_2_polp_3"/>
+<!--        <force name="finger2_p1_f" 	site="gripperfinger_2_polp_1"/>-->
+<!--        <force name="finger2_p2_f" 	site="gripperfinger_2_polp_2"/>-->
+<!--        <force name="finger2_p3_f" 	site="gripperfinger_2_polp_3"/>-->
 
-        <force name="finger3_p1_f" 	site="gripperfinger_middle_polp_1"/>
-        <force name="finger3_p2_f" 	site="gripperfinger_middle_polp_2"/>
-        <force name="finger3_p3_f" 	site="gripperfinger_middle_polp_3"/>
+<!--        <force name="finger3_p1_f" 	site="gripperfinger_middle_polp_1"/>-->
+<!--        <force name="finger3_p2_f" 	site="gripperfinger_middle_polp_2"/>-->
+<!--        <force name="finger3_p3_f" 	site="gripperfinger_middle_polp_3"/>-->
 
 	    <force name='end' site='gripperpalm'/>
         <force name="wrist_3_link_f" 		site="wrist_3_link"/>
