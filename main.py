@@ -2,16 +2,21 @@ import os
 import numpy as np
 import mujoco_py as mj
 from mujoco_py import (MjSim, load_model_from_path)
-import our_func
+import motion_plan
 import impedance
-import my_filter
+import filters
 import contacts
+import print_results
 import sensor_reading as sr
 import UR5_kinematics as UR5_kin
 from scipy.spatial.transform import Rotation as R
 
-need_render = True
-# Set points here (homogeneous transformation matrix)
+# ---------------  Run the simulation  ---------------- #
+control_law = 'Impedance'  # Choose Control law: 'PID' , 'Impedance'
+hybrid = True  # if true and chosen 'Impedance', Movement to cylinder with PID and afterwards impedance
+need_render = True  # To print results choose False
+
+# ---------------  Set trajectory (homogeneous transformation matrix)  ---------------- #
 start = np.array([[1, 0, 0, -0.7],
                   [0, 0, -1, -0.21],
                   [0, 1, 0, 0],
@@ -42,92 +47,30 @@ down = np.array([[1, 0, 0, 0.02],
                  [0, 1, 0, 0.27],
                  [0, 0, 0, 1]])
 x_down = np.array([0.02, -0.6575, 0.27])
-# path 2
-# down = np.array([[1, 0, 0, 0.027],
-#                  [0, 0, -1, -0.61],
-#                  [0, 1, 0, 0.27],
-#                  [0, 0, 0, 1]])
 
-# path 3
-# down = np.array([[1, 0, 0, 0.027],
-#                  [0, 0, -1, -0.69],
-#                  [0, 1, 0, 0.27],
-#                  [0, 0, 0, 1]])
-
-# path 4
-# down = np.array([[1, 0, 0, -0.1],
-#                  [0, 0, -1, -0.6565],
-#                  [0, 1, 0, 0.27],
-#                  [0, 0, 0, 1]])
-
-# path 5
-# down = np.array([[1, 0, 0, 0.027],
-#                  [0, np.cos(80/180 * np.pi), -np.sin(80/180 * np.pi), -0.6565],
-#                  [0, np.sin(80/180 * np.pi), np.cos(80/180 * np.pi), 0.27],
-#                  [0, 0, 0, 1]])
-
-dx = 0.01
-dy = 0.01
+# ---------------  Add error to final position  ---------------- #
+dx = -0.01
+dy = -0.01
 angle_err = np.deg2rad([0, 0, 0])
 rotation_mat = np.identity(3)
 temp_mat = R.from_rotvec(angle_err)
 rotation_mat = temp_mat.as_matrix()
 trans_mat = np.identity(4)
-trans_mat[0:3,0:3] = rotation_mat
+trans_mat[0:3, 0:3] = rotation_mat
 down2 = np.array([[1, 0, 0, 0.02 + dx],
                   [0, 0, -1, -0.6575 + dy],
                   [0, 1, 0, 0.20],
                   [0, 0, 0, 1]])
 down2 = down2 @ trans_mat
-
-test = np.array([[1, 0, 0, -0.11],
-                 [0, 0, -1, -0.65],
-                 [0, 1, 0, 0.3],
-                 [0, 0, 0, 1]])
-
-target_test = np.array([[1, 0, 0, -0.26],
-                        [0, 0, -1, -0.5],
-                        [0, 1, 0, 0.3],
-                        [0, 0, 0, 1]])
-
-crash_test = np.array([[1, 0, 0, -0.26],
-                       [0, 0, -1, -0.65],
-                       [0, 1, 0, 0.1],
-                       [0, 0, 0, 1]])
-
-downbox = np.array([[1, 0, 0, -0.15],
-                    [0, 0, -1, -0.7],
-                    [0, 1, 0, 0.27],
-                    [0, 0, 0, 1]])
-
-down2box = np.array([[1, 0, 0, -0.15],
-                     [0, 0, -1, -0.7],
-                     [0, 1, 0, 0.20],
-                     [0, 0, 0, 1]])
+# ----------------------------------------------------------------- #
 # --- End of points --- #
 
 # add all points by order to path
 path2cylinder_points = np.array([start, mid, target])  # straight path
 path2target_points = np.array([target, up_from_target, left, down, down2])  # straight path with grip
 
-# test for calibration, removes contact with cylinder and box
-# path2cylinder_points = np.array([start, mid, target_test])
-# path2target_points = np.array([target_test, up_from_target, left])
-
-# test for sensor read, crash to table
-# path2cylinder_points = np.array([start, mid, target])
-# path2target_points = np.array([target, up_from_target, crash_test])
-
-# test for sensor read, Hold cylinder in air
-# path2cylinder_points = np.array([start, mid, target])
-# path2target_points = np.array([target, up_from_target])
-
-# test for contacts, crash to box
-# path2cylinder_points = np.array([start, mid, target])  # straight path
-# path2target_points = np.array([target, up_from_target, left, downbox, down2box])
-
 # build simulation from xml file
-model = load_model_from_path("./UR5_our/UR5gripper_box.xml")
+model = load_model_from_path("./UR5/UR5gripper_box.xml")
 sim = MjSim(model)
 
 # Define start Position
@@ -138,15 +81,14 @@ sim.set_state(state)
 
 
 # ---------------  Set Simulation Parameters  ---------------- #
-controller = 'PID'  # Choose initial Controller: 'PID' , 'impedance' , 'bias'
-hybrid = True   # if true, Movement to cylinder with PID and afterwards with impedance
 move_speed = 0.5  # [m/s] Set the desired Speed
 sim_time = 12  # [sec] Length of Simulation
-
 is_gravity_on = True
-print_status = True  # Prints Graphs at the end of run
-Griper_on = True
-flag_norm = False
+controller = 'PID'  # initial Controller: 'PID' , 'impedance' , 'bias'
+if not hybrid and control_law == 'Impedance':
+    controller = 'impedance'
+elif control_law == 'PID':
+    hybrid = False
 
 
 # Control
@@ -196,16 +138,16 @@ model.opt.gravity[-1] = is_gravity_on * -9.81
 DT = model.opt.timestep
 
 # ---- build paths in Cartesian space ---- #
-path2cylinder, p_dot_2cylinder, p_2dot_2cylinder = our_func.build_cartesian_path(path2cylinder_points, move_speed, DT)
-path2target, p_dot_2target, p_2dot_2target = our_func.build_cartesian_path(path2target_points, move_speed, DT)
+path2cylinder, p_dot_2cylinder, p_2dot_2cylinder = motion_plan.build_cartesian_path(path2cylinder_points, move_speed, DT)
+path2target, p_dot_2target, p_2dot_2target = motion_plan.build_cartesian_path(path2target_points, move_speed, DT)
 
 # apply inverse kinematics to get path in joint space
-q_path2cylinder = our_func.build_trajectory(path2cylinder)
-q_path2target = our_func.build_trajectory(path2target)
+q_path2cylinder = motion_plan.build_trajectory(path2cylinder)
+q_path2target = motion_plan.build_trajectory(path2target)
 
 # get q velocity by:  q_dot = Jacobian.T * cartesian_velocity
-q_dot_2cylinder = our_func.q_velocity(sim, p_dot_2cylinder, q_path2cylinder)
-q_dot_2target = our_func.q_velocity(sim, p_dot_2target, q_path2target)
+q_dot_2cylinder = motion_plan.q_velocity(sim, p_dot_2cylinder, q_path2cylinder)
+q_dot_2target = motion_plan.q_velocity(sim, p_dot_2target, q_path2target)
 
 # initialize joint position and velocity vectors
 q_r = np.zeros((6,))
@@ -224,6 +166,8 @@ i_control = np.zeros((6,))
 d_control = 0
 pos_error = 0
 last_forces_avg = [0, 0, 0]
+Griper_on = True
+flag_norm = False
 
 # init log vars
 actual_q = np.zeros((6, 1))
@@ -252,7 +196,7 @@ p_2dot = p_2dot_2cylinder
 
 while True:
     # Read current joint angels and velocity
-    q_r, q_r_dot = our_func.get_joints(sim, q_r, q_r_dot)
+    q_r, q_r_dot = motion_plan.get_joints(sim, q_r, q_r_dot)
     x_r_mat = UR5_kin.forward(q_r)
     x_r_temp = x_r_mat[0:3, 3]
     x_r = np.append(x_r, np.reshape(x_r_temp, (3, 1)), axis=1)
@@ -365,7 +309,7 @@ while True:
     Tau = np.append(force, torque)
 	# filter and log Forces
     force_log = np.append(force_log, np.reshape(Tau, (6, 1)), axis=1)
-    force_log = my_filter.butter_lowpass_filter(force_log, 5, 20, 2)
+    force_log = filters.butter_lowpass_filter(force_log, 5, 20, 2)
 
     if need_render:
         viewer.render()
@@ -385,17 +329,17 @@ while True:
             # viewer._paused = True
             # print desired vs actual (q, q_dot)
             # print(sim_loop_num * DT)
-            our_func.print_q_actual(q_path2cylinder, q_path2target, actual_q, DT, 'angle')
-            our_func.print_q_actual(q_dot_2cylinder, q_dot_2target, actual_q_dot, DT, 'speed')
+            print_results.print_q_actual(q_path2cylinder, q_path2target, actual_q, DT, 'angle')
+            print_results.print_q_actual(q_dot_2cylinder, q_dot_2target, actual_q_dot, DT, 'speed')
             # print Joint Position Error
-            our_func.print_pos_error(pos_error_log, DT)
+            print_results.print_pos_error(pos_error_log, DT)
             # print Control effort
-            our_func.print_torque(u_log, DT)
+            print_results.print_torque(u_log, DT)
             # force print
-            our_func.print_force_scope2(force_log, DT)
-            our_func.print_xyz_3D(x_r)
+            print_results.print_force_scope2(force_log, DT)
+            print_results.print_xyz_3D(x_r)
             time = np.linspace(0, sim_time, len(x_0[0, :]))
-            our_func.print_xyz_time(time[1:], x_0[:, 1:], x_m[:, 1:], x_r[:, 1:])
+            print_results.print_xyz_time(time[1:], x_0[:, 1:], x_m[:, 1:], x_r[:, 1:])
 
         break
 

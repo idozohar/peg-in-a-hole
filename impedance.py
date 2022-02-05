@@ -1,9 +1,7 @@
 import numpy as np
 import UR5_kinematics as UR_kin
-from mujoco_py import functions
 from numpy.linalg import inv
-import our_func
-import my_filter
+import motion_plan
 from scipy.spatial.transform import Rotation as R
 
 
@@ -22,7 +20,7 @@ def imic(sim, K, B, M, q_r, q_r_dot, p, p_dot, dt, f_in):
     p_dot_0 = np.append(p_dot, euler_dot_0)
 
 	# Get current Jacobian
-    j_muj, j_l_muj, _ = our_func.jacob(sim)
+    j_muj, j_l_muj, _ = motion_plan.jacob(sim)
 
     # Real position & orientation - X_r
     x_r_mat = UR_kin.forward(q_r)
@@ -39,13 +37,6 @@ def imic(sim, K, B, M, q_r, q_r_dot, p, p_dot, dt, f_in):
     # Discrete integral for X_m_dot & X_m
     x_im_dot = x_r_dot + dt * integrand
     x_im = x_r + dt * x_im_dot
-
-    # print('position error: ', p_pos - x_r)
-    # # print('inv(M): ', inv(M))
-    # print('x_im: ', x_im)
-    # print('x_im_dot: ', x_im_dot)
-    # print('Force: ', f_in)
-    # print('--------------------------------------------- \n')
 
     im_pos = x_im[0:3]
     im_euler = x_im[3:]
